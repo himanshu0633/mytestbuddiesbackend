@@ -54,50 +54,50 @@ async function seed() {
   }
 
   // Sample quiz
-  let quiz = await Quiz.findOne({ title: 'JEE Sample Test 1' });
-  if (!quiz) {
-    quiz = await Quiz.create({
-      title: 'JEE Sample Test 1',
-      tags: ['JEE Main','Physics','Chemistry','Maths'],
-      syllabus: 'PCM basics',
-      price: 99,
-      duration_minutes: 30,
-      status: 'published'
-    });
-    await Question.insertMany([
-      {
-        quiz_id: quiz._id,
-        subject: 'Physics',
-        difficulty: 'easy',
-        statement: 'Speed of light is?',
-        options: ['3x10^8 m/s','1 m/s','340 m/s','10 m/s'],
-        correct_index: 0,
-        marks: 4.0,
-        negative_marks: 1.0,
-      },
-      {
-        quiz_id: quiz._id,
-        subject: 'Chemistry',
-        difficulty: 'easy',
-        statement: 'H2O is?',
-        options: ['Hydrogen','Oxygen','Water','Helium'],
-        correct_index: 2,
-        marks: 4.0,
-        negative_marks: 1.0,
-      },
-      {
-        quiz_id: quiz._id,
-        subject: 'Maths',
-        difficulty: 'easy',
-        statement: '2+2=?',
-        options: ['3','4','5','2'],
-        correct_index: 1,
-        marks: 4.0,
-        negative_marks: 1.0,
-      },
-    ]);
-    console.log('Seeded sample quiz & questions.');
-  }
+  // let quiz = await Quiz.findOne({ title: 'JEE Sample Test 1' });
+  // if (!quiz) {
+  //   quiz = await Quiz.create({
+  //     title: 'JEE Sample Test 1',
+  //     tags: ['JEE Main','Physics','Chemistry','Maths'],
+  //     syllabus: 'PCM basics',
+  //     price: 99,
+  //     duration_minutes: 30,
+  //     status: 'published'
+  //   });
+  //   await Question.insertMany([
+  //     {
+  //       quiz_id: quiz._id,
+  //       subject: 'Physics',
+  //       difficulty: 'easy',
+  //       statement: 'Speed of light is?',
+  //       options: ['3x10^8 m/s','1 m/s','340 m/s','10 m/s'],
+  //       correct_index: 0,
+  //       marks: 4.0,
+  //       negative_marks: 1.0,
+  //     },
+  //     {
+  //       quiz_id: quiz._id,
+  //       subject: 'Chemistry',
+  //       difficulty: 'easy',
+  //       statement: 'H2O is?',
+  //       options: ['Hydrogen','Oxygen','Water','Helium'],
+  //       correct_index: 2,
+  //       marks: 4.0,
+  //       negative_marks: 1.0,
+  //     },
+  //     {
+  //       quiz_id: quiz._id,
+  //       subject: 'Maths',
+  //       difficulty: 'easy',
+  //       statement: '2+2=?',
+  //       options: ['3','4','5','2'],
+  //       correct_index: 1,
+  //       marks: 4.0,
+  //       negative_marks: 1.0,
+  //     },
+  //   ]);
+  //   console.log('Seeded sample quiz & questions.');
+  // }
 }
 
 connectMongo().then(async () => {
