@@ -2,12 +2,14 @@ import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import multer from 'multer';
+import path from 'path';
 import User from '../models/user.model.js';
 
 dotenv.config();
 const router = Router();
 
-/** Helper: generate token safely */
+// Helper: generate token safely
 function signToken(user) {
   if (!process.env.JWT_SECRET) {
     throw new Error('Server misconfigured: JWT_SECRET not set');
@@ -19,23 +21,27 @@ function signToken(user) {
   );
 }
 
-/** REGISTER USER */
+// File upload setup for QR Code or Image using multer
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, './uploads/');
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname)); // Unique file name
+  },
+});
+const upload = multer({ storage: storage });
+
+// REGISTER USER
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, mobile, password } = req.body;
+    const { name, email, mobile, password, role } = req.body;
 
     // Validate required fields
-    if (!name || !password || (!email && !mobile)) {
+    if (!name || !password || (!email && !mobile) || !role) {
       return res.status(400).json({
-        error: 'Missing fields (need name, password, and email or mobile)',
+        error: 'Missing fields (name, password, email or mobile, and role are required)',
       });
-    }
-
-    // Check JWT_SECRET early
-    if (!process.env.JWT_SECRET) {
-      return res
-        .status(500)
-        .json({ error: 'Server config error: JWT_SECRET not set' });
     }
 
     // Normalize inputs
@@ -43,6 +49,7 @@ router.post('/register', async (req, res) => {
       name: String(name).trim(),
       email: email ? String(email).trim().toLowerCase() : undefined,
       mobile: mobile ? String(mobile).trim() : undefined,
+      role: String(role).trim(), // either 'student' or 'general'
     };
 
     // Duplicate check (before create)
@@ -71,7 +78,8 @@ router.post('/register', async (req, res) => {
       email: data.email,
       mobile: data.mobile,
       password_hash: hash,
-      role: 'student',
+      role: data.role,
+      paymentStatus: 'pending', // Set initial payment status to "pending"
     });
 
     // Generate JWT token
@@ -97,17 +105,11 @@ router.post('/register', async (req, res) => {
         .json({ error: `${key.charAt(0).toUpperCase() + key.slice(1)} already registered` });
     }
 
-    // Missing JWT_SECRET
-    if (e.message && e.message.includes('JWT_SECRET')) {
-      return res.status(500).json({ error: 'Server config error' });
-    }
-
-    // Default fallback
     return res.status(400).json({ error: 'Invalid data' });
   }
 });
 
-/** LOGIN USER */
+// LOGIN USER
 router.post('/login', async (req, res) => {
   try {
     const { email, mobile, password } = req.body;
@@ -132,14 +134,11 @@ router.post('/login', async (req, res) => {
     return res.json({ token });
   } catch (e) {
     console.error('Login error:', e);
-    if (e.message && e.message.includes('JWT_SECRET')) {
-      return res.status(500).json({ error: 'Server config error' });
-    }
     res.status(500).json({ error: 'Something went wrong' });
   }
 });
 
-/** GET CURRENT USER */
+// GET CURRENT USER (for user info after login)
 router.get('/me', async (req, res) => {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
@@ -148,13 +147,51 @@ router.get('/me', async (req, res) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id).select(
-      'name email mobile role'
-    );
+    const user = await User.findById(decoded.id).select('name email mobile role');
     return res.json(user);
   } catch (err) {
     console.error('Token verify error:', err);
     return res.json(null);
+  }
+});
+
+// UPLOAD PROOF (Transaction ID or QR code)
+router.post('/upload-proof/:userId', upload.single('qrCode'), async (req, res) => {
+  const userId = req.params.userId;
+  const qrCode = req.file ? req.file.path : req.body.transactionId;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    user.qrCode = qrCode;
+    await user.save();
+
+    res.json({ message: 'Proof uploaded successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error uploading proof' });
+  }
+});
+
+// Admin Approval Endpoint (for updating payment status to 'paid')
+router.put('/approve/:userId', async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Change the payment status to "paid"
+    user.paymentStatus = 'paid';
+    await user.save();
+
+    res.json({ message: 'User approved successfully' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error approving user' });
   }
 });
 

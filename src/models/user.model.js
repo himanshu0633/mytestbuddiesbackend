@@ -1,63 +1,57 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
-// Define schema
-const userSchema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: [true, 'Name is required'],
-      trim: true,
-      minlength: [2, 'Name must be at least 2 characters']
-    },
-    email: {
-      type: String,
-      trim: true,
-      lowercase: true,
-      unique: true,
-      sparse: true, // allows null or missing email
-      match: [/^\S+@\S+\.\S+$/, 'Invalid email address'],
-    },
-    mobile: {
-      type: String,
-      trim: true,
-      unique: true,
-      sparse: true, // allows null or missing mobile
-      match: [/^\d{7,15}$/, 'Invalid mobile number'], // basic pattern
-    },
-    password_hash: {
-      type: String,
-      required: [true, 'Password hash required'],
-    },
-    role: {
-      type: String,
-      enum: ['student', 'admin'],
-      default: 'student',
-    },
+const userSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
   },
-  {
-    timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
-  }
-);
+  email: {
+    type: String,
+    required: false,
+    unique: true,
+  },
+  mobile: {
+    type: String,
+    required: false,
+    unique: true,
+  },
+  password: {
+    type: String,
+    required: true,
+  },
+  userType: {
+    type: String,
+    enum: ['student', 'general'],
+    required: true,
+  },
+  qrCode: {
+    type: String, // Store the transaction ID or path to uploaded QR code image
+    required: false,
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'paid'],
+    default: 'pending',
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
 
-// ⚙️ Optional: ensure indexes are recreated correctly
-// This prevents issues if old indexes (non-sparse unique) already exist
+// Hash password before saving user
 userSchema.pre('save', async function (next) {
-  try {
-    if (mongoose.models.User && mongoose.models.User.collection) {
-      await mongoose.models.User.collection.createIndex(
-        { email: 1 },
-        { unique: true, sparse: true }
-      );
-      await mongoose.models.User.collection.createIndex(
-        { mobile: 1 },
-        { unique: true, sparse: true }
-      );
-    }
-  } catch (err) {
-    console.error('Index creation error:', err.message);
+  if (this.isModified('password')) {
+    this.password = await bcrypt.hash(this.password, 10);
   }
   next();
 });
 
-const User = mongoose.models.User || mongoose.model('User', userSchema);
-export default User;
+// Method to compare passwords
+userSchema.methods.comparePassword = async function (password) {
+  return await bcrypt.compare(password, this.password);
+};
+
+const User = mongoose.model('User', userSchema);
+module.exports = User;
