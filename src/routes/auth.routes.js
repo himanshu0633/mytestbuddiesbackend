@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import multer from 'multer';
 import path from 'path';
-import User from '../models/user.model.js';
+import User from '../models/user.model.js';  // Ensure default export in user.model.js
 
 dotenv.config();
 const router = Router();
@@ -30,7 +30,17 @@ const storage = multer.diskStorage({
     cb(null, Date.now() + path.extname(file.originalname)); // Unique file name
   },
 });
-const upload = multer({ storage: storage });
+const upload = multer({
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    // Only accept image files
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!allowedTypes.includes(file.mimetype)) {
+      return cb(new Error('Only image files are allowed'), false);
+    }
+    cb(null, true);
+  },
+});
 
 // REGISTER USER
 router.post('/register', async (req, res) => {
@@ -42,6 +52,12 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({
         error: 'Missing fields (name, password, email or mobile, and role are required)',
       });
+    }
+
+    // Simple email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (email && !emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
     }
 
     // Normalize inputs
@@ -115,9 +131,7 @@ router.post('/login', async (req, res) => {
     const { email, mobile, password } = req.body;
 
     if (!password || (!email && !mobile)) {
-      return res
-        .status(400)
-        .json({ error: 'Missing credentials (password + email or mobile)' });
+      return res.status(400).json({ error: 'Missing credentials (password + email or mobile)' });
     }
 
     const query = email
@@ -171,6 +185,7 @@ router.post('/upload-proof/:userId', upload.single('qrCode'), async (req, res) =
 
     res.json({ message: 'Proof uploaded successfully' });
   } catch (error) {
+    console.error('Error uploading proof:', error);
     res.status(500).json({ error: 'Error uploading proof' });
   }
 });
@@ -191,6 +206,7 @@ router.put('/approve/:userId', async (req, res) => {
 
     res.json({ message: 'User approved successfully' });
   } catch (error) {
+    console.error('Error approving user:', error);
     res.status(500).json({ error: 'Error approving user' });
   }
 });

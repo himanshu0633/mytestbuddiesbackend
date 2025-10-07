@@ -1,6 +1,7 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 
+// User Schema definition
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -42,7 +43,7 @@ const userSchema = new mongoose.Schema({
 
 // Hash password before saving user
 userSchema.pre('save', async function (next) {
-  if (this.isModified('password')) {
+  if (this.isModified('password') || this.isNew) {
     this.password = await bcrypt.hash(this.password, 10);
   }
   next();
@@ -50,8 +51,10 @@ userSchema.pre('save', async function (next) {
 
 // Method to compare passwords
 userSchema.methods.comparePassword = async function (password) {
-  return await bcrypt.compare(password, this.password);
+  return bcrypt.compare(password, this.password);
 };
 
 const User = mongoose.model('User', userSchema);
-module.exports = User;
+
+// Export the User model
+export default User;
