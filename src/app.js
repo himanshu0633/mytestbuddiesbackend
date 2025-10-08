@@ -7,13 +7,13 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import connectMongo from './db/mongo.js';
 
-import authRoutes from './routes/auth.routes.js';
+import userRoutes from './routes/adminuser.js';
 import quizRoutes from './routes/quiz.routes.js';
 import paymentRoutes from './routes/payment.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 
 import bcrypt from 'bcrypt';
-import User from './models/user.model.js';
+import User from './models/user.js';
 import Quiz from './models/quiz.model.js';
 import Question from './models/question.model.js';
 
@@ -36,7 +36,7 @@ app.use('/api/payments', rateLimit({ windowMs: 60*1000, max: 60 }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // routes
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', userRoutes);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
