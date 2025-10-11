@@ -1,5 +1,5 @@
 import express from 'express';
-import { registerUser, loginUser, upload } from '../Controller/userController.js'; // Corrected import
+import { registerUser, loginUser, upload,getMe } from '../Controller/userController.js'; // Corrected import
 
 const router = express.Router();
 
@@ -19,5 +19,5 @@ router.post('/login', (req, res) => {
   console.log('Login Data:', req.body); // Logs the login data
   loginUser(req, res);
 });
-
+router.get('/me', getMe);
 export default router;

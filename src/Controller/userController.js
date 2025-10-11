@@ -28,8 +28,8 @@ export const registerUser = async (req, res) => {
   const proofOfPayment = req.file;
 
   // Log received data and file
-  console.log('Received registration data:', req.body);
-  console.log('Received file for proof of payment:', proofOfPayment ? proofOfPayment.path : 'No file uploaded');
+  // console.log('Received registration data:', req.body);
+  // console.log('Received file for proof of payment:', proofOfPayment ? proofOfPayment.path : 'No file uploaded');
 
   try {
     // Validation
@@ -74,25 +74,25 @@ export const loginUser = async (req, res) => {
   const { email, mobile, password } = req.body;
 
   // Log received login request
-  console.log('Received login request with data:', req.body);
+  // console.log('Received login request with data:', req.body);
 
   try {
     // Find user by email or mobile
     const user = await User.findOne({ $or: [{ email }, { mobile }] });
 
     if (!user) {
-      console.log('User not found for credentials:', { email, mobile }); // Log if user not found
+      // console.log('User not found for credentials:', { email, mobile }); // Log if user not found
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
     // Check password validity
     const passwordMatch = await user.comparePassword(password);
     if (!passwordMatch) {
-      console.log('Invalid password for user:', { email, mobile }); // Log invalid password
+      // console.log('Invalid password for user:', { email, mobile }); // Log invalid password
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    console.log('User logged in successfully:', user); // Log successful login
+    // console.log('User logged in successfully:', user); // Log successful login
 
     // Create JWT token
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
@@ -106,5 +106,28 @@ export const loginUser = async (req, res) => {
   } catch (error) {
     console.error('Error during login:', error); // Log error details
     res.status(500).json({ message: 'Server error during login', error: error.message });
+  }
+};
+export const getMe = async (req, res) => {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+
+  if (!token) {
+    return res.status(400).json({ message: 'No token provided' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select('name email mobile role');
+    
+    // Check if user exists
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    return res.json(user);
+  } catch (err) {
+    console.error('Token verify error:', err);
+    return res.status(401).json({ message: 'Invalid or expired token' });
   }
 };
