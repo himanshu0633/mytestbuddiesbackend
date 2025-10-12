@@ -1,9 +1,13 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-dotenv.config();  // Load environment variables from .env
+// dotenv.config();  // Load environment variables from .env
+dotenv.config({ path: '../.env' });
+
 
 export default async function connectMongo() {
   const uri = process.env.MONGO_URI;  // Use MONGO_URI from .env
+  console.log('Mongo URI:', process.env.MONGO_URI);
+
   if (!uri) {
     console.error("Mongo URI is not set in the environment variables.");
     process.exit(1);
