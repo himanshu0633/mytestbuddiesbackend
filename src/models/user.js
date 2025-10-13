@@ -1,39 +1,99 @@
+// models/User.js
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
-
 const userSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },
-    email: { type: String, unique: true },
-    mobile: { type: String, unique: true },
-    password: { type: String, minlength: 6 },
-    userType: { type: String, enum: ['student', 'general'] },
-    utr: { type: String },
-    paymentStatus: { type: String, enum: ['pending', 'verified'], default: 'pending' },
-    proofOfPayment: { type: String },
+    name: {
+      type: String,
+      // required: true,
+      trim: true,
+      minlength: 2,
+      maxlength: 100,
+    },
+    email: {
+      type: String,
+      // required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+      index: true,
+    },
+    mobile: {
+      type: String,
+      // required: true,
+      unique: true,
+      trim: true,
+      match: /^\d{10}$/, // exactly 10 digits
+      index: true,
+    },
+    userType: {
+      type: String,
+      enum: ['student', 'general'],
+      // required: true,
+      lowercase: true,
+      trim: true,
+    },
+
+    // ✅ New fields for secure auth
+    passwordHash: {
+      type: String,
+      // required: true, // we always store the hash
+      select: false,  // exclude from find() by default
+    },
+    emailVerified: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+
+    // Optional quality-of-life flags
+    disabled: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    lastLoginAt: {
+      type: Date,
+    },
   },
   { timestamps: true }
 );
 
-// Pre-save hook to hash the password before saving
-userSchema.pre('save', async function (next) {
-  console.log('Saving user:', this); // Log user data before saving, including unmodified password
-  if (!this.isModified('password')) return next();
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
-  console.log('Password hashed:', this.password); // Log the hashed password (for debugging purposes, but avoid logging in production)
-  next();
-});
+/** Instance Methods **/
 
-// Method to compare passwords during login
-userSchema.methods.comparePassword = async function (password) {
-  console.log('Comparing password for user:', this.email || this.mobile); // Log the user email/mobile while comparing
-  const isMatch = await bcrypt.compare(password, this.password);
-  console.log('Password comparison result:', isMatch); // Log if password matches or not
-  return isMatch;
+// setPassword: hash and set passwordHash
+userSchema.methods.setPassword = async function setPassword(plain) {
+  if (!plain || String(plain).length < 6) {
+    throw new Error('Password must be at least 6 characters');
+  }
+  const salt = await bcrypt.genSalt(12);
+  this.passwordHash = await bcrypt.hash(String(plain), salt);
 };
 
-const user = mongoose.model('User', userSchema);
+// comparePassword: compare with stored hash
+userSchema.methods.comparePassword = async function comparePassword(plain) {
+  // if passwordHash is not selected, fetch it explicitly
+  if (!this.passwordHash) {
+    const fresh = await this.constructor.findById(this._id).select('+passwordHash');
+    if (!fresh || !fresh.passwordHash) return false;
+    return bcrypt.compare(String(plain), fresh.passwordHash);
+  }
+  return bcrypt.compare(String(plain), this.passwordHash);
+};
 
-export default user;
+// Hide sensitive fields in JSON
+userSchema.methods.toJSON = function toJSON() {
+  const obj = this.toObject({ virtuals: true });
+  delete obj.passwordHash;
+  delete obj.__v;
+  return obj;
+};
+
+/** Indexes (optional but useful) **/
+userSchema.index({ email: 1 }, { unique: true });
+userSchema.index({ mobile: 1 }, { unique: true });
+
+const User = mongoose.model('User', userSchema);
+export default User;

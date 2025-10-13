@@ -1,23 +1,19 @@
-import express from 'express';
-import { registerUser, loginUser, upload,getMe } from '../Controller/userController.js'; // Corrected import
+// routes/auth.js
+import { Router } from 'express';
+import {
+  sendOtp,
+  verifyOtp,
+  registerUser,
+  loginUser,
+  getMe,
+} from '../Controller/userController.js'; // ✅ सही controller
 
-const router = express.Router();
+const router = Router();
 
-// Register route with file upload
-router.post('/register', upload.single('proofOfPayment'), (req, res, next) => {
-  console.log('Received Registration Request');
-  console.log('Form Data:', req.body); // Logs the form data
-  console.log('File:', req.file); // Logs the uploaded file info
-
-  // Pass to the registerUser controller after logging the request
-  registerUser(req, res, next);
-});
-
-// Login route
-router.post('/login', (req, res) => {
-  console.log('Received Login Request');
-  console.log('Login Data:', req.body); // Logs the login data
-  loginUser(req, res);
-});
+router.post('/send-otp', sendOtp);
+router.post('/verify-otp', verifyOtp);
+router.post('/register', registerUser);
+router.post('/login', loginUser);
 router.get('/me', getMe);
+
 export default router;
