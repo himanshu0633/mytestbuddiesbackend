@@ -2,8 +2,8 @@
 import mongoose from 'mongoose';
 
 const UserProgressSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  field: { type: mongoose.Schema.Types.ObjectId, ref: 'Field', required: true },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  field: { type: mongoose.Schema.Types.ObjectId, ref: 'Field' },
   questionsAnswered: [{
     question: { type: mongoose.Schema.Types.ObjectId, ref: 'Question' },
     answer: String,

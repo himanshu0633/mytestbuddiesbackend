@@ -1,5 +1,8 @@
 import Field from "../models/Field.js";
 import Question from "../models/Question.js";
+import UserProgress from "../models/UserProgress.js";
+
+
 // Create field (admin only)
 export const createField = async (req, res) => {
   try {
@@ -28,6 +31,27 @@ export const getFields = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+// export const getFields = async (req, res) => {
+//   try {
+//     const userId = req.user.id;
+
+//     // Fetch the fields from the database
+//     const fields = await Field.find().sort({ createdAt: -1 });
+
+//     // Find the fields that the user has already completed
+//     const userCompletedFields = await UserProgress.find({ user: userId }).select('field').lean();
+
+//     // Extract the field IDs that the user has already completed
+//     const completedFieldIds = userCompletedFields.map((progress) => progress.field.toString());
+
+//     // Filter out the fields that the user has already completed
+//     const availableFields = fields.filter(field => !completedFieldIds.includes(field._id.toString()));
+
+//     res.json(availableFields);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
 // Get single field by ID
 export const getFieldById = async (req, res) => {
   try {

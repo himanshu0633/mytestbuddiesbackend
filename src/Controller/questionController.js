@@ -54,16 +54,19 @@ export const getQuestionsByField = async (req, res) => {
 };
 
 // ✅ Submit user answers for a field (track progress)
+// ✅ Submit user answers for a field (track progress)
 export const submitAnswers = async (req, res) => {
   try {
-    const { fieldId, answers } = req.body; // answers: array of {questionId, answer}
+    if (!req.user || !req.user.id) {
+      return res.status(400).json({ error: "User not authenticated or missing from request" });
+    }
 
-    // Find the user progress for this field
-    let userProgress = await UserProgress.findOne({ user: req.user._id, field: fieldId });
+    const { fieldId, answers } = req.body;
+    let userProgress = await UserProgress.findOne({ user: req.user.id, field: fieldId });
+
     if (!userProgress) {
-      // If no progress exists, create a new one
       userProgress = new UserProgress({
-        user: req.user._id,
+        user: req.user.id,
         field: fieldId,
         questionsAnswered: [],
         totalCorrect: 0,
@@ -71,35 +74,45 @@ export const submitAnswers = async (req, res) => {
       });
     }
 
-    // Process each answer
     let totalCorrect = 0;
     for (let answer of answers) {
       const question = await Question.findById(answer.questionId);
       if (question) {
-        const isCorrect = question.correctAnswer === answer.answer;
-        userProgress.questionsAnswered.push({ question: question._id, answer: answer.answer, isCorrect });
+        // Normalize answers by trimming and making lowercase
+        const userAnswerNormalized = answer.answer.trim().toLowerCase();
+        const correctAnswerNormalized = question.correctAnswer.trim().toLowerCase();
+
+        // Check if the normalized answers match
+        const isCorrect = userAnswerNormalized === correctAnswerNormalized;
+
+        userProgress.questionsAnswered.push({
+          question: question._id,
+          answer: answer.answer,
+          isCorrect,
+        });
+
         if (isCorrect) totalCorrect++;
       }
     }
 
-    // Update total correct and answered
     userProgress.totalCorrect = totalCorrect;
     userProgress.totalAnswered = answers.length;
 
-    // Save the updated progress
     await userProgress.save();
-
     res.json({ success: true, progress: userProgress });
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+
+
 // ✅ Get user progress for a field
 export const getUserProgress = async (req, res) => {
   try {
     const { fieldId } = req.params;
-    const userProgress = await UserProgress.findOne({ user: req.user._id, field: fieldId }).populate('questionsAnswered.question');
+    const userProgress = await UserProgress.findOne({ user: req.user.id, field: fieldId }).populate('questionsAnswered.question');
     if (!userProgress) {
       return res.status(404).json({ error: "No progress found for this field" });
     }
