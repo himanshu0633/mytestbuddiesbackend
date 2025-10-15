@@ -243,6 +243,7 @@ export const loginUser = async (req, res) => {
     const email = emailRaw ? normEmail(emailRaw) : null;
     const mobile = mobileRaw ? normMobile(mobileRaw) : null;
     const password = String(req.body?.password ?? '');
+    const role = String(req.body?.role ?? 'user').trim().toLowerCase();
 
     if (!password || (!email && !mobile)) {
       return sendErr(res, 400, 'Email/mobile and password are required');
@@ -285,6 +286,7 @@ export const loginUser = async (req, res) => {
         mobile: user.mobile,
         userType: user.userType,
         emailVerified: user.emailVerified,
+        role: user.role,
       },
       token,
     });
@@ -303,7 +305,7 @@ export const getMe = async (req, res) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id).select('name email mobile userType emailVerified lastLoginAt');
+    const user = await User.findById(decoded.id).select('name email mobile userType emailVerified lastLoginAt role');
     if (!user) return sendErr(res, 404, 'User not found');
     return sendOK(res, { user });
   } catch (err) {

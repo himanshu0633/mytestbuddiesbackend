@@ -6,8 +6,7 @@ import {
   registerUser,
   loginUser,
   getMe,
-} from '../Controller/userController.js'; // ✅ सही controller
-
+} from '../Controller/userController.js'; 
 const router = Router();
 
 router.post('/send-otp', sendOtp);
