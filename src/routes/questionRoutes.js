@@ -1,6 +1,6 @@
 import express from 'express';
 import { isAuthenticated, isAdmin } from '../middleware/auth.js';  
-import { createQuestion, getQuestionsByField, submitAnswers, getUserProgress } from '../controller/questionController.js';  
+import { createQuestion, getQuestionsByField, submitAnswers, getUserProgress } from '../Controller/questionController.js';  
 
 const router = express.Router();
 
