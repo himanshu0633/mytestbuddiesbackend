@@ -5,8 +5,9 @@ import { createQuestion, getQuestionsByField, submitAnswers, getUserProgress } f
 const router = express.Router();
 
 // ✅ Create question under a specific field (admin only)
-router.post('/fields/questions', isAuthenticated,  createQuestion);  // Correct path without /admin
 
+
+router.post('/fields/:fieldId/questions', isAuthenticated, createQuestion);
 // ✅ Get all questions for a specific field (user/admin)
 router.get('/fields/que/:fieldId', isAuthenticated, getQuestionsByField);  
 

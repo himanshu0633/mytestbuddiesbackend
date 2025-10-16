@@ -8,11 +8,12 @@ export const createQuestion = async (req, res) => {
     const { fieldId } = req.params;
     const { type, text, options, correctAnswer, solution, timeAllocated } = req.body;
 
-    // Find the field
+    if (!req.user?.id) return res.status(401).json({ error: 'Unauthorized' });
+    if (!text?.trim()) return res.status(400).json({ error: 'Question text is required' });
+
     const field = await Field.findById(fieldId);
     if (!field) return res.status(404).json({ error: 'Field not found' });
 
-    // Create the question
     const question = await Question.create({
       field: fieldId,
       type,
@@ -21,7 +22,7 @@ export const createQuestion = async (req, res) => {
       correctAnswer,
       solution,
       timeAllocated,
-      createdBy: req.user._id,
+      createdBy: req.user.id,
     });
 
     res.status(201).json({
@@ -34,13 +35,12 @@ export const createQuestion = async (req, res) => {
   }
 };
 
-// ✅ Get all questions for a field (for both admin and regular user)
+// ✅ Get all questions for a field (admin or user)
 export const getQuestionsByField = async (req, res) => {
   try {
     const { fieldId } = req.params;
     const questions = await Question.find({ field: fieldId }).sort({ createdAt: -1 }).lean();
 
-    // Hide answers for non-admin users
     if (!req.user?.isAdmin) {
       const safeQuestions = questions.map(({ correctAnswer, solution, ...rest }) => rest);
       return res.json({ success: true, questions: safeQuestions });
@@ -48,22 +48,21 @@ export const getQuestionsByField = async (req, res) => {
 
     res.json({ success: true, questions });
   } catch (err) {
-    console.error("Error fetching questions:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 };
 
 // ✅ Submit user answers for a field (track progress)
-// ✅ Submit user answers for a field (track progress)
 export const submitAnswers = async (req, res) => {
   try {
-    if (!req.user || !req.user.id) {
-      return res.status(400).json({ error: "User not authenticated or missing from request" });
-    }
+    if (!req.user?.id) return res.status(401).json({ error: "Unauthorized" });
 
     const { fieldId, answers } = req.body;
-    let userProgress = await UserProgress.findOne({ user: req.user.id, field: fieldId });
+    if (!fieldId || !Array.isArray(answers)) {
+      return res.status(400).json({ error: "Invalid request body" });
+    }
 
+    let userProgress = await UserProgress.findOne({ user: req.user.id, field: fieldId });
     if (!userProgress) {
       userProgress = new UserProgress({
         user: req.user.id,
@@ -74,16 +73,16 @@ export const submitAnswers = async (req, res) => {
       });
     }
 
+    const questionIds = answers.map(a => a.questionId);
+    const questions = await Question.find({ _id: { $in: questionIds } });
+
     let totalCorrect = 0;
     for (let answer of answers) {
-      const question = await Question.findById(answer.questionId);
+      const question = questions.find(q => q._id.toString() === answer.questionId);
       if (question) {
-        // Normalize answers by trimming and making lowercase
-        const userAnswerNormalized = answer.answer.trim().toLowerCase();
-        const correctAnswerNormalized = question.correctAnswer.trim().toLowerCase();
-
-        // Check if the normalized answers match
-        const isCorrect = userAnswerNormalized === correctAnswerNormalized;
+        const userAnswer = answer.answer.trim().toLowerCase();
+        const correctAnswer = question.correctAnswer?.trim().toLowerCase() || '';
+        const isCorrect = userAnswer === correctAnswer;
 
         userProgress.questionsAnswered.push({
           question: question._id,
@@ -97,28 +96,29 @@ export const submitAnswers = async (req, res) => {
 
     userProgress.totalCorrect = totalCorrect;
     userProgress.totalAnswered = answers.length;
-
     await userProgress.save();
-    res.json({ success: true, progress: userProgress });
 
+    res.json({ success: true, progress: userProgress });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
-
-
 
 // ✅ Get user progress for a field
 export const getUserProgress = async (req, res) => {
   try {
     const { fieldId } = req.params;
-    const userProgress = await UserProgress.findOne({ user: req.user.id, field: fieldId }).populate('questionsAnswered.question');
+    const userProgress = await UserProgress.findOne({
+      user: req.user.id,
+      field: fieldId,
+    }).populate("questionsAnswered.question");
+
     if (!userProgress) {
       return res.status(404).json({ error: "No progress found for this field" });
     }
 
     res.json({ success: true, progress: userProgress });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 };
