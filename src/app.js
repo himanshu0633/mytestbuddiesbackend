@@ -16,7 +16,7 @@ import questionRoutes from "./routes/questionRoutes.js";
 // Use bcryptjs to avoid native build issues
 import bcrypt from 'bcryptjs';
 import User from './models/user.js';
-
+import payment from './routes/payment.routes.js';
 // Load env (adjust if your .env path differs)
 dotenv.config({ path: '../.env' });
   
@@ -107,6 +107,7 @@ app.use('/api/auth', userRoutes);
 
 app.use("/api/admin/fields", fieldRoutes);
 app.use("/api/admin/questions", questionRoutes);
+app.use('/api/payment', payment);
 // Simple health endpoint (useful for uptime checks)
 
 // Root endpoint
