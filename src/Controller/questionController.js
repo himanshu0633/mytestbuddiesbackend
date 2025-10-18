@@ -95,7 +95,7 @@ export const submitAnswers = async (req, res) => {
     }
 
     userProgress.totalCorrect = totalCorrect;
-    userProgress.totalAnswered = answers.length;
+    userProgress.totalAnswered = answers.length;  
     await userProgress.save();
 
     res.json({ success: true, progress: userProgress });
