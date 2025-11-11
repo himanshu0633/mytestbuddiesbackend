@@ -120,7 +120,7 @@ app.get('/', (_req, res) => {
 });
 
 /* ------------------------------ Bootstrapping ------------------------------ */
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Seed admin user if not exists
 async function seed() {
