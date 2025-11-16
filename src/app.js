@@ -12,6 +12,8 @@ import connectMongo from './db/mongo.js';
 import userRoutes from './routes/adminuser.js';
 import adminRoutes from './routes/admin.js'; 
 import fieldRoutes from "./routes/fieldRoutes.js";
+import PerQue from './routes/previousQue.js';
+import PreQuestions from './routes/PreQuestions.js';
 import questionRoutes from "./routes/questionRoutes.js";
 // Use bcryptjs to avoid native build issues
 import bcrypt from 'bcryptjs';
@@ -106,7 +108,9 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api/auth', userRoutes);
 
 app.use("/api/admin/fields", fieldRoutes);
+app.use("/api/admin/pervious", PerQue);
 app.use("/api/admin/questions", questionRoutes);
+app.use("/api/admin/prequestions", PreQuestions);
 app.use('/api/payment', payment);
 // Simple health endpoint (useful for uptime checks)
 
